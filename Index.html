@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Reserva Horarios - App</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+  <!-- Login screen -->
+  <div id="loginScreen" class="flex flex-col items-center justify-center flex-grow p-6">
+    <h1 class="text-4xl font-bold mb-8 text-gray-800">Iniciar sesión</h1>
+    <form id="loginForm" class="bg-white p-8 rounded shadow-md w-full max-w-sm">
+      <label class="block mb-2 font-semibold text-gray-700" for="username">Usuario</label>
+      <input id="username" name="username" type="text" required
+        class="w-full border border-gray-300 rounded px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+      <label class="block mb-2 font-semibold text-gray-700" for="password">Contraseña</label>
+      <input id="password" name="password" type="password" required
+        class="w-full border border-gray-300 rounded px-3 py-2 mb-6 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+      <button type="submit"
+        class="w-full bg-indigo-600 text-white font-bold py-2 rounded hover:bg-indigo-700 transition">Entrar</button>
+      <p id="loginError" class="mt-4 text-red-600 font-semibold hidden">Usuario o contraseña incorrectos</p>
+    </form>
+  </div>
+
+  <!-- Main app -->
+  <div id="app" class="hidden flex flex-col flex-grow p-6 max-w-4xl mx-auto">
+    <header class="flex justify-between items-center mb-6">
+      <h2 class="text-3xl font-bold text-gray-800">Aula TIC</h2>
+      <div>
+        <span id="loggedUser" class="mr-4 font-semibold text-gray-400"></span>
+        <button id="logoutBtn"
+          class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded font-semibold transition">Cerrar sesión</button>
+      </div>
+    </header>
+
+    <section class="mb-6">
+      <div class="flex justify-between items-center mb-2">
+        <button id="prevDayBtn" title="Día anterior"
+          class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded transition disabled:opacity-50 disabled:cursor-not-allowed">
+          Anterior</button>
+        <h3 id="selectedDateDisplay" class="text-xl font-semibold text-gray-800"></h3>
+        <button id="nextDayBtn" title="Día siguiente"
+          class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded transition disabled:opacity-50 disabled:cursor-not-allowed">Siguiente
+          </button>
+      </div>
+    </section>
+
+    <section id="scheduleSection" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <!-- Horas se cargan aquí dinámicamente -->
+    </section>
+
+    <!-- Modal Reservar -->
+  <div id="reserveModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+      <h3 class="text-xl font-semibold mb-4 text-gray-800">Reservar horario <span id="modalHour" class="font-bold"></span></h3>
+      
+      <form id="reserveForm" class="space-y-4">
+        <div>
+          <label for="subjectSelect" class="block font-semibold mb-1">Selecciona Asignatura:</label>
+          <select id="subjectSelect" required
+            class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="" disabled selected>-- Elige asignatura --</option>
+            <option>Matemáticas</option>
+            <option>Lengua</option>
+            <option>Ciencias</option>
+            <option>Historia</option>
+            <option>Inglés</option>
+            <option>Física</option>
+            <option>Química</option>
+          </select>
+        </div>
+        <div>
+          <label for="gradeSelect" class="block font-semibold mb-1">Selecciona Grado:</label>
+          <select id="gradeSelect" required
+            class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="" disabled selected>-- Elige grado --</option>
+            <option>5to</option>
+            <option>6to</option>
+            <option>7mo</option>
+            <option>8vo</option>
+            <option>9no</option>
+            <option>10mo</option>
+            <option>11mo</option>
+          </select>
+        </div>
+        <div class="flex justify-end gap-4 pt-2">
+          <button type="button" id="cancelReserveBtn"
+            class="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 transition">Cancelar</button>
+          <button type="submit" id="saveReserveBtn"
+            class="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 transition font-semibold">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+    
+  </div>
+
+<script>
+  // --- Usuarios predefinidos ---
+  const USERS = {
+    heyder: { password: 'admin12', role: 'admin' },
+    noenia: { password: '19noe', role: 'user' },
+    rosa: { password: 'ros13', role: 'user' },
+    aleydi: { password: '2ale', role: 'user' },
+    felipe: { password: 'felix', role: 'user' },
+    nehemia: { password: 'nehix', role: 'user' },
+    winston: { password: 'w256', role: 'user' },
+    hershell: { password: 'hrw256', role: 'user' },
+    helding: { password: 'hdg56', role: 'user' },
+    ivania: { password: 'ivr6', role: 'user' },
+    maryuri: { password: 'mw25', role: 'user' },
+    yeril: { password: 'w2y', role: 'user' },
+    auda: { password: '2a5', role: 'user' },
+    carolina: { password: 'jcaro', role: 'user' },
+    ruth: { password: 'jrt', role: 'user' },
+    magdalena: { password: 'mgx', role: 'user' },
+    berania: { password: 'bera123', role: 'user' },
+    israel: { password: 'is123', role: 'user' },
+  };
+
+  // --- Horarios disponibles ---
+  const HOURS = [
+    '12:00-12:45 MD', '12:45-1:30 PM', '1:30-2:15 PM', '2:30-3:15 PM',
+    '3:15-4:00 PM', '4:00-4:45 PM', '03:00 PM', '04:00 PM'
+  ];
+
+  const MAX_DAYS_OFFSET = 20;
+  let currentUser = null;
+  let selectedDate = new Date();
+  let hourToReserve = null;
+
+  // --- Elementos del DOM ---
+  const loginScreen = document.getElementById('loginScreen');
+  const loginForm = document.getElementById('loginForm');
+  const loginError = document.getElementById('loginError');
+  const app = document.getElementById('app');
+  const loggedUserSpan = document.getElementById('loggedUser');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const selectedDateDisplay = document.getElementById('selectedDateDisplay');
+  const prevDayBtn = document.getElementById('prevDayBtn');
+  const nextDayBtn = document.getElementById('nextDayBtn');
+  const scheduleSection = document.getElementById('scheduleSection');
+  const reserveModal = document.getElementById('reserveModal');
+  const modalHourSpan = document.getElementById('modalHour');
+  const cancelReserveBtn = document.getElementById('cancelReserveBtn');
+  const reserveForm = document.getElementById('reserveForm');
+  const subjectSelect = document.getElementById('subjectSelect');
+  const gradeSelect = document.getElementById('gradeSelect');
+
+  // --- Funciones de utilidad ---
+  const formatDate = d =>
+    `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+
+  const isWeekend = d => [0, 6].includes(d.getDay());
+
+  const adjustToWeekday = (d, dir = 1) => {
+    const date = new Date(d);
+    while (isWeekend(date)) date.setDate(date.getDate() + dir);
+    return date;
+  };
+
+  const businessDaysBetween = (start, end) => {
+    let count = 0;
+    const step = start <= end ? 1 : -1;
+    const cur = new Date(start);
+    while ((step === 1 && cur <= end) || (step === -1 && cur >= end)) {
+      if (!isWeekend(cur)) count += step;
+      cur.setDate(cur.getDate() + step);
+    }
+    return count;
+  };
+
+  const isWithinRange = date => {
+    const today = adjustToWeekday(new Date());
+    const diff = businessDaysBetween(today, date);
+    return diff >= -MAX_DAYS_OFFSET && diff <= MAX_DAYS_OFFSET;
+  };
+
+  const setSelectedDate = newDate => {
+    let d = adjustToWeekday(newDate);
+    const today = adjustToWeekday(new Date());
+
+    const diff = businessDaysBetween(today, d);
+    if (diff > MAX_DAYS_OFFSET || diff < -MAX_DAYS_OFFSET) {
+      d = today;
+    }
+
+    selectedDate = d;
+  };
+
+  const getKeyForDate = d => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `reservas_${y}-${m}-${day}`;
+  };
+
+  const loadReservations = d => {
+    const raw = localStorage.getItem(getKeyForDate(d));
+    return raw ? JSON.parse(raw) : {};
+  };
+
+  const saveReservations = (d, data) => {
+    localStorage.setItem(getKeyForDate(d), JSON.stringify(data));
+  };
+
+  const getDayName = d =>
+    ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][d.getDay()];
+
+  const updateSelectedDateDisplay = () => {
+    selectedDateDisplay.textContent = `${getDayName(selectedDate)} ${formatDate(selectedDate)}`;
+  };
+
+  const updateNavButtons = () => {
+    const changeDate = (offset) => {
+      let date = new Date(selectedDate);
+      do date.setDate(date.getDate() + offset); while (isWeekend(date));
+      return date;
+    };
+
+    prevDayBtn.disabled = !isWithinRange(changeDate(-1));
+    nextDayBtn.disabled = !isWithinRange(changeDate(1));
+    updateSelectedDateDisplay();
+  };
+
+  // --- Modal reserva ---
+  const openReserveModal = hour => {
+    hourToReserve = hour;
+    modalHourSpan.textContent = hour;
+    reserveForm.reset();
+    reserveModal.classList.remove('hidden');
+  };
+
+  const closeReserveModal = () => {
+    hourToReserve = null;
+    reserveModal.classList.add('hidden');
+  };
+
+  cancelReserveBtn.addEventListener('click', closeReserveModal);
+
+  reserveForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const subject = subjectSelect.value;
+    const grade = gradeSelect.value;
+    if (!hourToReserve) return;
+
+    const reservations = loadReservations(selectedDate);
+    reservations[hourToReserve] = `${currentUser.username} (${subject} - ${grade})`;
+    saveReservations(selectedDate, reservations);
+
+    closeReserveModal();
+    renderSchedule();
+  });
+
+  // --- Renderizar horario ---
+  const renderSchedule = () => {
+    scheduleSection.innerHTML = '';
+    const reservations = loadReservations(selectedDate);
+
+    selectedDateDisplay.textContent = formatDate(selectedDate);
+
+    HOURS.forEach(hour => {
+      const reserver = reservations[hour];
+      const isReserved = !!reserver;
+      const isOwner = reserver?.startsWith(currentUser.username);
+      const canEdit = !isReserved || isOwner || currentUser.role === 'admin';
+
+      const card = document.createElement('div');
+      card.className = 'bg-white rounded shadow p-4 flex flex-col justify-between';
+
+      const h = document.createElement('div');
+      h.textContent = hour;
+      h.className = 'font-semibold text-indigo-700 mb-2';
+      card.appendChild(h);
+
+      const status = document.createElement('div');
+      status.textContent = isReserved ? `Reservado por: ${reserver}` : 'Disponible';
+      status.className = isReserved
+        ? (isOwner ? 'text-green-600 font-bold' : 'text-gray-600')
+        : 'text-gray-400 italic';
+      card.appendChild(status);
+
+      const btnContainer = document.createElement('div');
+      btnContainer.className = 'mt-3 flex gap-2';
+
+      if (canEdit) {
+        if (!isReserved) {
+          const btn = document.createElement('button');
+          btn.textContent = 'Reservar';
+          btn.className = 'bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded font-semibold w-full';
+          btn.addEventListener('click', () => openReserveModal(hour));
+          btnContainer.appendChild(btn);
+        } else {
+          const btn = document.createElement('button');
+          btn.textContent = 'Liberar';
+          btn.className = 'bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded font-semibold w-full';
+          btn.addEventListener('click', () => {
+            delete reservations[hour];
+            saveReservations(selectedDate, reservations);
+            renderSchedule();
+          });
+          btnContainer.appendChild(btn);
+        }
+      } else {
+        const info = document.createElement('div');
+        info.textContent = 'No puedes modificar';
+        info.className = 'text-xs italic text-gray-400 w-full text-center';
+        btnContainer.appendChild(info);
+      }
+
+      card.appendChild(btnContainer);
+      scheduleSection.appendChild(card);
+    });
+
+    updateNavButtons();
+  };
+
+  // --- Navegación por fechas ---
+  prevDayBtn.addEventListener('click', () => {
+    let date = new Date(selectedDate);
+    do date.setDate(date.getDate() - 1); while (isWeekend(date));
+    if (isWithinRange(date)) {
+      setSelectedDate(date);
+      renderSchedule();
+    }
+  });
+
+  nextDayBtn.addEventListener('click', () => {
+    let date = new Date(selectedDate);
+    do date.setDate(date.getDate() + 1); while (isWeekend(date));
+    if (isWithinRange(date)) {
+      setSelectedDate(date);
+      renderSchedule();
+    }
+  });
+
+  // ⚠️ Aquí falta tu lógica de inicio de sesión y logout, que puedes añadir abajo.
+
+
+
+  // Login form submit
+  loginForm.addEventListener('submit', e => {
+    e.preventDefault();
+    loginError.classList.add('hidden');
+    const username = loginForm.username.value.trim();
+    const password = loginForm.password.value;
+
+    if (USERS[username] && USERS[username].password === password) {
+      currentUser = { username, role: USERS[username].role };
+      loginScreen.classList.add('hidden');
+      app.classList.remove('hidden');
+      loggedUserSpan.textContent = `Usuario: ${username} (${currentUser.role})`;
+      setSelectedDate(new Date());
+      renderSchedule();
+    } else {
+      loginError.classList.remove('hidden');
+    }
+  });
+
+
+    // Cancelar reserva modal
+  cancelReserveBtn.addEventListener('click', () => {
+    closeReserveModal();
+  });
+
+  // Guardar reserva
+  reserveForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!hourToReserve) return;
+
+    const subject = subjectSelect.value;
+    const grade = gradeSelect.value;
+
+    if (!subject || !grade) {
+      alert('Por favor, selecciona asignatura y grado.');
+      return;
+    }
+
+    const reservations = loadReservations(selectedDate);
+    if (reservations[hourToReserve]) {
+      alert('Esa hora ya está reservada.');
+      closeReserveModal();
+      renderSchedule();
+      return;
+    }
+
+    // Guardar reserva con usuario actual
+    reservations[hourToReserve] = { subject, grade, user: currentUser.username };
+    saveReservations(selectedDate, reservations);
+
+    closeReserveModal();
+    renderSchedule();
+  });
+
+  // Logout
+  logoutBtn.addEventListener('click', () => {
+    currentUser = null;
+    loginForm.reset();
+    loginError.classList.add('hidden');
+    app.classList.add('hidden');
+    loginScreen.classList.remove('hidden');
+  });
+
+</script>
+</body>
+</html>
